@@ -1,0 +1,9 @@
+.section-title:hover{
+    color: blue;
+    background-color: rgba(184, 184, 255, 0.257);
+}
+
+.job-title:hover{
+    color: rgb(79, 0, 176);
+    background-color: rgba(79, 0, 176, 0.098);
+}

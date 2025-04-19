@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dish Duty Duel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* CSS styles remain the same as the previous version */
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #c7f0d8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+            overflow: hidden;
+        }
+        .game-container {
+            background-color: #9bbc0f;
+            border: 10px solid #0f380f;
+            border-radius: 10px 10px 30px 10px;
+            padding: 10px;
+            width: 95vw;
+            max-width: 600px;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+            aspect-ratio: 16 / 9;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .screen {
+            background-color: #cadc9f;
+            border: 4px solid #0f380f;
+            border-radius: 5px;
+            padding: 0;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+        .hidden { display: none !important; }
+
+        /* Overlays (Start/End) */
+         .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.75); color: white;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; z-index: 20; padding: 20px; box-sizing: border-box;
+        }
+        .overlay h1, .overlay h2 { margin-bottom: 15px; }
+        .overlay button {
+            font-family: 'Press Start 2P', cursive; background-color: #e0f0e0; color: #0f380f;
+            border: 2px solid #0f380f; padding: 10px 15px; margin: 10px;
+            border-radius: 5px; cursor: pointer; box-shadow: 2px 2px 0px #0f380f;
+            transition: all 0.1s ease; text-transform: uppercase;
+        }
+        .overlay button:active { box-shadow: none; transform: translate(2px, 2px); }
+        .overlay button:hover { background-color: #cadc9f; }
+        .character-select button { display: block; width: 80%; max-width: 250px; margin: 10px auto; }
+        .instructions { font-size: 0.7em; margin-top: 15px; }
+
+        /* Game Elements */
+        .game-info {
+            position: absolute; top: 5px; left: 10px; right: 10px;
+            display: flex; justify-content: space-between; font-size: 0.8em;
+            color: #0f380f; z-index: 5;
+        }
+        .lives {
+             position: absolute; bottom: 55px; left: 50%; transform: translateX(-50%);
+             font-size: 1.5em; z-index: 6;
+        }
+
+        /* Kitchen Background */
+        .background {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 80px;
+            background-color: #8bac0f; border-top: 4px solid #0f380f; z-index: 0;
+        }
+        .counter {
+            position: absolute; bottom: 0; height: 50px; background-color: #8bac0f;
+            border-top: 2px solid #0f380f; border-bottom: 2px solid #0f380f;
+        }
+        .counter-left { left: 0; width: 35%; }
+        .counter-right { right: 0; width: 35%; }
+        .sink {
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 30%; height: 50px; background-color: #7c9c0e;
+            border: 2px solid #0f380f; border-top-width: 4px; border-radius: 5px 5px 0 0;
+            z-index: 1; display: flex; justify-content: center; align-items: center;
+            color: #0f380f; font-size: 0.7em;
+        }
+         .sink::before {
+             content: 'FAUCET'; position: absolute; top: -15px; font-size: 0.6em;
+             background: #0f380f; color: #9bbc0f; padding: 1px 3px; border-radius: 2px;
+         }
+
+        /* --- STICK FIGURE Character Styling --- */
+        .character {
+            width: 40px; height: 60px; border: none;
+            position: absolute; bottom: 50px; z-index: 10;
+        }
+        .character::before { /* Torso */
+            content: ''; position: absolute; left: 50%; transform: translateX(-50%);
+            bottom: 12px; width: 4px; height: 25px; background-color: #0f380f; border-radius: 2px;
+        }
+        .head { /* Head */
+            content: ''; position: absolute; left: 50%; bottom: 35px;
+            width: 15px; height: 15px; background-color: #0f380f;
+            border-radius: 50%; transform: translateX(-50%); z-index: 1;
+        }
+        .hair { /* Hair */
+            position: absolute; top: -3px; left: 50%; transform: translateX(-50%);
+            background-color: #0f380f; border-radius: 3px 3px 0 0; z-index: 2;
+        }
+        .player .hair { background-color: #fbec5d; width: 15px; height: 8px; border-radius: 5px 5px 0 0; }
+        .skyler .hair { width: 15px; height: 6px; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+        .trevor .hair { width: 13px; height: 5px; }
+        .trevor .hair::after { content: ''; position: absolute; top: -3px; left: 8px; width: 3px; height: 3px; background-color: #0f380f; transform: rotate(45deg); }
+        .aneisha .hair { width: 15px; height: 15px; border-radius: 3px; }
+        .arm { /* Arms */
+            position: absolute; left: 50%; bottom: 25px; width: 4px; height: 18px;
+            background-color: #0f380f; border-radius: 2px; transform-origin: top center;
+        }
+        .arm-left { transform: translateX(-50%) rotate(35deg); }
+        .arm-right { transform: translateX(-50%) rotate(-35deg); }
+        .character::after { /* Legs */
+            content: ''; position: absolute; left: 50%; bottom: 0; width: 4px; height: 15px;
+            background-color: #0f380f; border-radius: 2px; transform-origin: top center;
+            transform: translateX(-70%) rotate(20deg); box-shadow: 6px 0 0 0 #0f380f;
+        }
+        .player { left: 20%; transform: translateX(0); }
+        .opponent { right: 20%; transform: translateX(0); }
+
+        /* Stunned Visual */
+        .stunned { animation: shake 0.1s linear infinite; }
+        @keyframes shake { 0%, 100% { transform: translateX(-1px); } 50% { transform: translateX(1px); } }
+        .stunned::before, .stunned .head, .stunned .arm, .stunned::after { opacity: 0.6; }
+
+        /* Effects */
+        .effect { position: absolute; font-size: 1.5em; pointer-events: none; z-index: 15; text-shadow: 1px 1px 0px #0f380f; }
+        .player-attack-effect { animation: attack-fly 0.3s linear forwards; }
+        @keyframes attack-fly { from { transform: translateX(0) scale(1); opacity: 1; } to { transform: translateX(50px) scale(0.8); opacity: 0; } }
+        .opponent-effect { animation: fade-in-out 0.8s linear forwards; }
+        .opponent-effect.flex-text { font-size: 1em; color: yellow; background: rgba(0,0,0,0.5); padding: 2px 5px; border-radius: 3px; transform: translateX(-50%); }
+        .opponent-effect.water-splash { animation: water-travel 0.5s linear forwards; color: cyan; }
+        @keyframes fade-in-out { 0%, 100% { opacity: 0; transform: translateY(0); } 20%, 80% { opacity: 1; transform: translateY(-5px); } }
+        @keyframes water-travel { from { opacity: 1; transform: translateX(0); } to { opacity: 1; transform: translateX(-80px); } }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="screen" class="screen">
+
+            <div id="start-screen" class="overlay">
+                <h1>Dish Duty Duel!</h1>
+                <p>Choose your friendly opponent:</p>
+                <div class="character-select">
+                    <button onclick="selectOpponent('Aneisha')">Aneisha (Easy)</button>
+                    <button onclick="selectOpponent('Skyler')">Skyler (Medium)</button>
+                    <button onclick="selectOpponent('Trevor')">Trevor (Hard)</button>
+                </div>
+                <p class="instructions">Use Arrow Keys to Move, Space Bar to Attack!</p>
+            </div>
+
+            <div id="game-area" class="hidden">
+                <div class="background">
+                    <div class="counter counter-left"></div>
+                    <div class="sink"></div>
+                    <div class="counter counter-right"></div>
+                </div>
+                 <div class="game-info">
+                    <div id="timer">Time: 20</div>
+                </div>
+                <div id="lives" class="lives">🍽️🍽️🍽️</div>
+                <div id="player-char" class="character player">
+                     <span class="head"><span class="hair"></span></span>
+                     <span class="arm arm-left"></span>
+                     <span class="arm arm-right"></span>
+                </div>
+                <div id="opponent-char" class="character opponent">
+                     <span class="head"><span class="hair"></span></span>
+                     <span class="arm arm-left"></span>
+                     <span class="arm arm-right"></span>
+                </div>
+                <div id="effects-area" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
+            </div>
+
+            <div id="end-screen" class="overlay hidden">
+                <h2 id="end-message">Game Over</h2>
+                <button onclick="restartGame()">Play Again?</button>
+            </div>
+
+        </div>
+        <a href="index.html">Scratch</a>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const screenElement = document.getElementById('screen');
+        const startScreen = document.getElementById('start-screen');
+        const gameArea = document.getElementById('game-area');
+        const endScreen = document.getElementById('end-screen');
+        const livesDisplay = document.getElementById('lives');
+        const timerDisplay = document.getElementById('timer');
+        const endMessage = document.getElementById('end-message');
+        const playerChar = document.getElementById('player-char');
+        const opponentChar = document.getElementById('opponent-char');
+        const effectsArea = document.getElementById('effects-area');
+        const sinkElement = document.querySelector('.sink');
+
+        // --- Game State ---
+        let lives = 3;
+        let timer = 20;
+        let timerInterval = null;
+        let opponent = null;
+        let gameLoopInterval = null;
+        let isGameOver = false;
+
+        // Player State
+        let playerX = 0;
+        let playerSpeed = 4; // Player speed remains constant
+        let isMovingLeft = false;
+        let isMovingRight = false;
+        let playerIsStunned = false;
+        let playerStunTimeout = null;
+        let playerAttackCooldown = false;
+        let playerAttackCooldownTimeout = null;
+
+        // Opponent State
+        let opponentX = 0;
+        let opponentSpeed = 1; // Base speed, adjusted by difficulty
+        let opponentTargetX = 0;
+        let opponentIsMoving = false;
+        let opponentActionTimeout = null;
+        let opponentWashingTimeout = null;
+        let opponentIsWashing = false;
+        let opponentAttackCooldown = false;
+        let opponentAttackCooldownTimeout = null;
+
+        // --- Opponent Data (ADJUSTED FOR MORE AGGRESSIVENESS) ---
+        const opponents = {
+            'Aneisha': { class: 'aneisha', interval: 1800, reaction: 850, attack: 'Tickle/Hug!', effect: '🤗', speed: 1.2, attackType: 'stun', attackInterval: 3000 }, // Faster interval, reaction, speed; shorter attack cooldown
+            'Skyler': { class: 'skyler', interval: 1600, reaction: 650, attack: 'Throw Egg!', effect: '🥚', speed: 1.4, attackType: 'stun', attackInterval: 2600 }, // Faster interval, reaction, speed; shorter attack cooldown
+            'Trevor': { class: 'trevor', interval: 1300, reaction: 500, attack: 'Push/Block!', effect: '✋', speed: 1.7, attackType: 'push', attackInterval: 2400 } // Faster interval, reaction, speed; shorter attack cooldown
+        };
+
+        // --- Constants ---
+        const SINK_CENTER_PERCENT = 50;
+        const CHARACTER_WIDTH = 40;
+        const ATTACK_RANGE = 60;
+        const OPPONENT_ATTACK_RANGE = 100;
+        const OPPONENT_ATTACK_PROBABILITY = 0.45; // Increased probability
+
+        // --- Functions ---
+
+        function selectOpponent(name) {
+            opponent = opponents[name];
+            opponent.name = name;
+            opponentSpeed = opponent.speed;
+            console.log(`Opponent selected: ${opponent.name}`);
+            opponentChar.className = `character opponent ${opponent.class}`;
+            playerChar.className = 'character player';
+            startScreen.classList.add('hidden');
+            startGame();
+        }
+
+        function startGame() {
+            console.log("Starting game...");
+            gameArea.classList.remove('hidden');
+            endScreen.classList.add('hidden');
+            isGameOver = false;
+
+            // Reset state
+            lives = 3; timer = 20; playerIsStunned = false; playerAttackCooldown = false;
+            opponentIsWashing = false; opponentIsMoving = false; opponentAttackCooldown = false;
+
+            // Reset positions
+            const screenWidth = screenElement.offsetWidth;
+            playerX = screenWidth * 0.20;
+            opponentX = screenWidth * 0.80 - CHARACTER_WIDTH;
+            playerChar.style.left = `${playerX}px`;
+            opponentChar.style.left = `${opponentX}px`;
+            opponentChar.style.right = 'auto';
+
+            updateLivesDisplay();
+            timerDisplay.textContent = `Time: ${timer}`;
+            playerChar.classList.remove('stunned');
+            opponentChar.classList.remove('stunned');
+
+            // Clear intervals/timeouts
+            clearInterval(timerInterval);
+            cancelAnimationFrame(gameLoopInterval);
+            clearTimeouts();
+
+            // Start timer
+            timerInterval = setInterval(() => {
+                if (isGameOver) return;
+                timer--;
+                timerDisplay.textContent = `Time: ${timer}`;
+                if (timer <= 0) { winGame(); }
+            }, 1000);
+
+            // Start opponent AI & game loop
+            scheduleOpponentAction();
+            gameLoopInterval = requestAnimationFrame(updateGame);
+            console.log(`Game started with ${opponent.name}.`);
+        }
+
+        // --- Game Loop ---
+        function updateGame() {
+            // Game loop logic remains the same
+            if (isGameOver) return;
+            const screenWidth = screenElement.offsetWidth;
+            const sinkRect = sinkElement.getBoundingClientRect();
+            const screenRect = screenElement.getBoundingClientRect();
+            const sinkLeftEdge = sinkRect.left - screenRect.left;
+            const sinkTargetX = sinkLeftEdge + (sinkRect.width / 2) - (CHARACTER_WIDTH / 2);
+
+            // Player Movement
+            if (!playerIsStunned) {
+                if (isMovingLeft) playerX -= playerSpeed;
+                if (isMovingRight) playerX += playerSpeed;
+                playerX = Math.max(0, Math.min(screenWidth - CHARACTER_WIDTH, playerX));
+                playerChar.style.left = `${playerX}px`;
+            }
+
+            // Opponent Movement
+            if (opponentIsMoving && !opponentIsWashing) {
+                 const direction = Math.sign(opponentTargetX - opponentX);
+                 opponentX += direction * opponentSpeed; // Uses updated opponentSpeed
+                 if (Math.abs(opponentX - opponentTargetX) < opponentSpeed) {
+                     opponentX = opponentTargetX;
+                     opponentIsMoving = false;
+                     console.log(`${opponent.name} reached the sink area.`);
+                     startWashingDishes(); // Uses updated opponent.reaction time inside
+                 }
+                 opponentChar.style.left = `${opponentX}px`;
+            }
+            gameLoopInterval = requestAnimationFrame(updateGame);
+        }
+
+        // --- Player Controls ---
+        // Player control logic remains the same
+        document.addEventListener('keydown', (e) => {
+            if (isGameOver || playerIsStunned) return;
+            if (e.key === 'ArrowLeft') isMovingLeft = true;
+            if (e.key === 'ArrowRight') isMovingRight = true;
+            if (e.key === ' ' || e.key === 'Spacebar') { playerAttack(); }
+        });
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') isMovingLeft = false;
+            if (e.key === 'ArrowRight') isMovingRight = false;
+        });
+
+        function playerAttack() {
+             // Player attack logic remains the same
+             if (playerIsStunned || playerAttackCooldown || isGameOver || opponentIsWashing) return;
+             const distance = Math.abs((playerX + CHARACTER_WIDTH / 2) - (opponentX + CHARACTER_WIDTH / 2));
+             console.log(`Player attack attempt. Distance: ${distance.toFixed(0)}`);
+
+             if (distance < ATTACK_RANGE) {
+                 console.log(`Attack successful against ${opponent.name}!`);
+                 createEffect(opponent.effect, playerX + 20, playerChar.offsetTop + 20, true);
+
+                 opponentX += (opponentX > playerX ? 60 : -60); // Pushback amount could be adjusted too if needed
+                 opponentX = Math.max(0, Math.min(screenElement.offsetWidth - CHARACTER_WIDTH, opponentX));
+                 opponentChar.style.left = `${opponentX}px`;
+
+                 if (opponentIsMoving || opponentIsWashing) {
+                     console.log("Opponent action interrupted.");
+                     clearTimeout(opponentWashingTimeout);
+                     opponentChar.classList.remove('stunned');
+                     opponentIsMoving = false;
+                     opponentIsWashing = false;
+                     scheduleOpponentAction(); // Reschedule using updated opponent.interval
+                 }
+                 playerAttackCooldown = true;
+                 clearTimeout(playerAttackCooldownTimeout);
+                 playerAttackCooldownTimeout = setTimeout(() => { playerAttackCooldown = false; }, 400);
+             } else {
+                 console.log("Attack missed (out of range).");
+             }
+        }
+
+        // --- Opponent AI ---
+        function scheduleOpponentAction() {
+             // Scheduling logic uses updated opponent.interval
+             if (isGameOver || opponentIsWashing) return;
+             clearTimeout(opponentActionTimeout);
+             const delay = opponent.interval + (Math.random() * 600 - 300); // Reduced randomness range slightly
+             console.log(`Scheduling ${opponent.name}'s next major action in ${delay.toFixed(0)}ms`);
+
+             opponentActionTimeout = setTimeout(() => {
+                 if (isGameOver || opponentIsWashing) return;
+                 // Uses updated OPPONENT_ATTACK_PROBABILITY
+                 const shouldAttack = Math.random() < OPPONENT_ATTACK_PROBABILITY;
+                 if (shouldAttack && !opponentAttackCooldown) {
+                     triggerOpponentAttack(); // Uses updated opponent.attackInterval for cooldown inside
+                 } else if (!opponentIsMoving) {
+                     moveOpponentToSink();
+                 } else {
+                     scheduleOpponentAction();
+                 }
+             }, delay);
+        }
+
+        function moveOpponentToSink() {
+            // Move logic remains the same, uses updated opponentSpeed in updateGame
+            if (isGameOver || opponentIsWashing || opponentIsMoving) return;
+            console.log(`${opponent.name} is moving towards the sink.`);
+            const sinkRect = sinkElement.getBoundingClientRect();
+            const screenRect = screenElement.getBoundingClientRect();
+            const sinkLeftEdge = sinkRect.left - screenRect.left;
+            opponentTargetX = sinkLeftEdge + (sinkRect.width / 2) - (CHARACTER_WIDTH / 2);
+            opponentIsMoving = true;
+        }
+
+        function startWashingDishes() {
+             // Washing logic uses updated opponent.reaction
+             if (isGameOver || opponentIsWashing) return;
+             console.log(`${opponent.name} started washing!`);
+             opponentIsWashing = true;
+             opponentIsMoving = false;
+             opponentChar.classList.add('stunned');
+
+             clearTimeout(opponentWashingTimeout);
+             opponentWashingTimeout = setTimeout(() => {
+                 if (opponentIsWashing) {
+                     console.log(`${opponent.name} finished washing a dish.`);
+                     opponentChar.classList.remove('stunned');
+                     loseLife();
+                     opponentIsWashing = false;
+                     if (!isGameOver) { scheduleOpponentAction(); }
+                 } else {
+                      opponentChar.classList.remove('stunned');
+                 }
+             }, opponent.reaction); // Uses updated reaction time
+        }
+
+        function triggerOpponentAttack() {
+            // Attack logic uses updated opponent.attackInterval for cooldown
+            if (isGameOver || opponentIsWashing || opponentAttackCooldown) return;
+            console.log(`${opponent.name} proactively attacks! Type: ${opponent.attackType}`);
+            opponentAttackCooldown = true;
+            opponentIsMoving = false;
+
+            let visualOpponentXCenter = opponentX + (CHARACTER_WIDTH / 2);
+            let effectYBase = opponentChar.offsetTop + 30;
+            let effectText = '';
+            let effectClass = 'opponent-effect';
+            let playerHit = Math.abs(playerX - opponentX) < OPPONENT_ATTACK_RANGE + 20;
+
+            if (opponent.attackType === 'stun') {
+                if (opponent.name === 'Skyler') {
+                    effectText = '*FLEX*'; effectClass += ' flex-text';
+                    const screenMiddleY = screenElement.offsetHeight / 2;
+                    createEffect(effectText, visualOpponentXCenter, screenMiddleY, false, effectClass);
+                } else { // Aneisha
+                    effectText = '🎶🎶';
+                    createEffect(effectText, visualOpponentXCenter, effectYBase - 10, false, effectClass);
+                }
+                if (playerHit) {
+                    console.log("Player stunned!");
+                    playerIsStunned = true; playerChar.classList.add('stunned');
+                    isMovingLeft = false; isMovingRight = false;
+                    clearTimeout(playerStunTimeout);
+                    playerStunTimeout = setTimeout(() => {
+                        playerIsStunned = false; playerChar.classList.remove('stunned');
+                        console.log("Player recovered from stun.");
+                    }, 1500); // Stun duration could also be adjusted per opponent? Keep 1.5s for now.
+                }
+            } else if (opponent.attackType === 'push') { // Trevor
+                effectText = '💧'; effectClass += ' water-splash';
+                createEffect(effectText, opponentX + 10, effectYBase, false, effectClass);
+                if (playerHit && playerX < opponentX) {
+                     console.log("Player pushed back!");
+                     playerX -= 50; // Pushback amount
+                     playerX = Math.max(0, playerX);
+                     playerChar.style.left = `${playerX}px`;
+                 }
+            }
+
+             clearTimeout(opponentAttackCooldownTimeout);
+             opponentAttackCooldownTimeout = setTimeout(() => {
+                 opponentAttackCooldown = false;
+                 scheduleOpponentAction();
+             }, opponent.attackInterval); // Uses updated attack interval for cooldown
+        }
+
+        // --- Game State Updates ---
+        // Win/Loss/Restart logic remains the same
+        function loseLife() {
+            if (isGameOver) return; lives--; console.log(`Life lost. Remaining lives: ${lives}`);
+            updateLivesDisplay(); if (lives <= 0) { loseGame(); }
+        }
+        function updateLivesDisplay() { livesDisplay.textContent = '🍽️'.repeat(lives) + '⚪'.repeat(Math.max(0, 3 - lives)); }
+        function winGame() {
+            if (isGameOver) return; console.log("Player wins! Timer reached 0.");
+            isGameOver = true; clearInterval(timerInterval); cancelAnimationFrame(gameLoopInterval); clearTimeouts();
+            gameArea.classList.add('hidden'); endScreen.classList.remove('hidden');
+            endMessage.textContent = "You are the service master!";
+        }
+        function loseGame() {
+             if (isGameOver) return; console.log("Player loses! No lives left.");
+             isGameOver = true; clearInterval(timerInterval); cancelAnimationFrame(gameLoopInterval); clearTimeouts();
+             gameArea.classList.add('hidden'); endScreen.classList.remove('hidden');
+             endMessage.textContent = "You have been SERVED.";
+        }
+        function restartGame() {
+            console.log("Restarting game..."); endScreen.classList.add('hidden'); startScreen.classList.remove('hidden');
+            playerChar.classList.remove('stunned'); opponentChar.className = `character opponent`;
+            const opponentHair = opponentChar.querySelector('.head .hair'); // Corrected selector
+            if(opponentHair) { opponentHair.style.backgroundColor = ''; opponentHair.removeAttribute('style'); } // Clear potential leftover styles
+        }
+
+        // --- Utility Functions ---
+        // createEffect and clearTimeouts remain the same
+        function createEffect(text, x, y, isPlayerAttack = false, effectClass = 'effect') {
+            const effect = document.createElement('div');
+            effect.classList.add(...effectClass.split(' '));
+            if (isPlayerAttack) { effect.classList.add('player-attack-effect'); }
+            effect.textContent = text;
+            effect.style.left = `${x}px`; effect.style.top = `${y}px`;
+            if (effectClass.includes('flex-text')) { /* CSS handles centering */ }
+            effectsArea.appendChild(effect);
+            let removalTime = 800;
+            if (isPlayerAttack) removalTime = 300;
+            if (effectClass.includes('water-splash')) removalTime = 500;
+            setTimeout(() => effect.remove(), removalTime);
+        }
+        function clearTimeouts() {
+             clearTimeout(opponentActionTimeout); clearTimeout(opponentWashingTimeout);
+             clearTimeout(playerStunTimeout); clearTimeout(playerAttackCooldownTimeout);
+             clearTimeout(opponentAttackCooldownTimeout);
+        }
+
+        // --- Initial Setup ---
+        window.onload = () => {
+            console.log("Window loaded. Initializing display.");
+            startScreen.classList.remove('hidden'); gameArea.classList.add('hidden'); endScreen.classList.add('hidden');
+        };
+    </script>
+</body>
+</html>
